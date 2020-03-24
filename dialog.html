@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <base target="_top">
+  <style>
+    #_cont {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+    }
+  
+    #_cont ul {
+      list-style-type: none;
+    }
+    
+    #_cont li {
+      margin-top: 10px;
+    }
+    
+    #_cont button {
+      width: 100%;
+    }
+    
+    #loader {
+      border: 16px solid #f3f3f3;
+      border-radius: 50%;
+      border-top: 16px solid #3498db;
+      width: 120px;
+      height: 120px;
+      -webkit-animation: spin 2s linear infinite; /* Safari */
+      animation: spin 2s linear infinite;
+    }
+    
+    /* Safari */
+    @-webkit-keyframes spin {
+      0% { -webkit-transform: rotate(0deg); }
+      100% { -webkit-transform: rotate(360deg); }
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="_cont"></div>
+  <script>
+    var container, data = {}
+    
+    google.script.run.withSuccessHandler(function (calendars) {
+      container = document.getElementById("_cont")
+      var innerHTML = "<ul>"
+            
+      calendars.forEach(function (calendar) {
+        innerHTML += '<li><button onclick="pickDate(\''+calendar[1]+'\')">' + calendar[0] + '</button></li>'
+      })
+      
+      innerHTML += "</ul>"
+      container.innerHTML = innerHTML
+      
+    }).getCalendars();
+    
+    function pickDate(calendarID) {
+      data.calendarID = calendarID
+      container.innerHTML = '<input type="date" onchange="chooseEvent(event.target.value)">'
+    }
+      
+    function chooseEvent(date) {
+      data.date = date;
+      
+      google.script.run.withSuccessHandler(function(events){
+        var innerHTML = '';
+        
+        if (events.length === 0) {
+          innerHTML = '<h3>No event found!</h3>';
+          innerHTML += '<br>';
+          innerHTML += '<input type="button" value="Close" onclick="google.script.host.close()" />';
+        } else {
+          innerHTML = '<ul>';
+        
+          events.forEach(function (event) {
+            innerHTML += '<li><button onclick="complete(\'' + event[1] + '\')">' + event[0] + '</button></li>'
+          });
+        
+          innerHTML += '</ul>';
+        }
+        
+        container.innerHTML = innerHTML;
+        
+      }).getEvents(JSON.stringify(data))
+    }
+    
+    function complete(eventID) {
+      document.getElementById("_cont").innerHTML = '<div id="loader"></div>'
+      data.eventID = eventID
+      google.script.run.withSuccessHandler(function(){
+        google.script.host.close()
+      }).withFailureHandler(function(error){
+        console.log(error)
+        google.script.host.close()
+      }).displayGuests(JSON.stringify(data))
+    }
+  </script>
+</body>
+
+</html>
